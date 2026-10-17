@@ -37,6 +37,7 @@ class Reply:
     text: str
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    truncated: bool = False  # the model hit the token limit (for reasoning models: ran out while still thinking)
 
 
 def load_env(path: str | Path | None = None) -> None:
@@ -117,7 +118,8 @@ class CrusoeLLM(Meter):
                 u = r.usage
                 pt, ct = (u.prompt_tokens, u.completion_tokens) if u else (0, 0)
                 self.record(model, pt, ct)
-                return Reply(clean(r.choices[0].message.content or ""), pt, ct)
+                return Reply(clean(r.choices[0].message.content or ""), pt, ct,
+                             r.choices[0].finish_reason == "length")
             except Exception as e:  # rate limit, overload, network: back off and retry; anything else is final
                 status = getattr(e, "status_code", None)
                 transient = status in (429, 500, 502, 503, 504) or type(e).__name__ in (

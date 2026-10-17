@@ -1,0 +1,82 @@
+{
+ "run": "real-1792276534",
+ "label": "real run on Crusoe Managed Inference",
+ "before_test": 0.7927689594356261,
+ "after_test": 0.7927689594356261,
+ "cost": 0.53568392,
+ "calls": 554,
+ "decisions": [
+  {
+   "round": 1,
+   "action": "reject",
+   "unit": "team:max_attempts",
+   "text": "team.max_attempts = 2",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": 0.035729847494553386,
+    "val": 0.02014652014652014
+   },
+   "at": 1792277385.603155
+  },
+  {
+   "round": 2,
+   "action": "reject",
+   "unit": "rule:R1",
+   "text": "Always complete the full function body before ending your response; never stop mid-expression or return truncated code.",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": -0.04814814814814816,
+    "val": 0.10164835164835166
+   },
+   "at": 1792277558.9824681
+  },
+  {
+   "round": 3,
+   "action": "reject",
+   "unit": "rule:R1",
+   "text": "Before coding, list all validation steps in order and handle None/empty inputs first; then write the complete function body without stopping early.",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": -0.02433862433862434,
+    "val": 0.033272283272283265
+   },
+   "at": 1792277696.581562
+  },
+  {
+   "round": 4,
+   "action": "reject",
+   "unit": "rule:R1",
+   "text": "Before coding, explicitly handle None, wrong types, and empty inputs; validate in the required order; complete the full function body without truncation.",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": -0.019047619047619042,
+    "val": 0.04120879120879121
+   },
+   "at": 1792277867.1070971
+  },
+  {
+   "round": 5,
+   "action": "reject",
+   "unit": "rule:R1",
+   "text": "Before returning, verify the code is complete and all required branches, validations, and error handling are fully implemented.",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": -0.024867724867724865,
+    "val": 0.04970760233918129
+   },
+   "at": 1792278061.7791638
+  },
+  {
+   "round": 6,
+   "action": "reject",
+   "unit": "rule:R1",
+   "text": "Before coding, write the full function skeleton with all branches and return statements, then fill in each branch completely.",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": -0.05052910052910052,
+    "val": -0.004884004884004876
+   },
+   "at": 1792278209.5972722
+  }
+ ]
+}

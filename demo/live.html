@@ -60,6 +60,8 @@
   select, button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:15px; cursor:pointer; }
   button.on { border-color:var(--gate); color:var(--gate); }
   .rules li { margin:4px 0; font-size:17px; }
+  button.tab { font-size:18px; font-weight:700; padding:6px 18px; border-radius:99px; }
+  button.tab.on { background:#243044; border-color:#5aa9ff; color:#eef2f8; }
 </style>
 </head>
 <body>
@@ -68,6 +70,8 @@
   <div class="goal">Make an AI coding team measurably better, and delete every change that can't prove it helped.</div>
   <div class="row">
     <span id="badge" class="badge waiting">WAITING</span>
+    <button id="tabLive" class="tab on" title="What the team is doing now">Live</button>
+    <button id="tabIns" class="tab" title="Charts of how the team improved">Insights</button>
     <span class="chip" id="endpoint"></span>
     <span id="models" class="row"></span>
     <div class="tools">
@@ -80,7 +84,7 @@
 
 <div class="banner" id="banner" style="margin-top:24px"></div>
 
-<main>
+<main id="liveView">
   <section>
     <h2>What the team is doing (newest first)</h2>
     <div class="feed" id="feed"><div class="empty">Waiting for the team to start…<br><small class="sub">Run: uv run rah run --k 3 --rounds 4</small></div></div>
@@ -112,7 +116,9 @@
     </div>
   </aside>
 </main>
+<div id="insightsView" style="display:none"></div>
 
+<script src="/insights.js"></script>
 <script>
 const ROLE = {
   proposer:{name:"Proposer", col:"#5aa9ff", key:"proposer"},
@@ -126,7 +132,8 @@ const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"
 const fmt = s => { s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
 const pct = x => Math.round(x*100)+"%";
 
-let state = null, mode = "live", shown = 0, replayT = null, replayStart = 0, runId = "";
+const q = new URLSearchParams(location.search); // ?run=ID pins a run, ?tab=ins opens Insights
+let state = null, mode = "live", shown = 0, replayT = null, replayStart = 0, runId = q.get("run") || "", pinned = !!q.get("run");
 
 function steps(d) {
   const p = ROLE.proposer, b = ROLE.builder, g = ROLE.gate, r = ROLE.removal;
@@ -217,7 +224,7 @@ async function pickRuns() {
   const runs = await (await fetch("/api/runs")).json();
   $("runPick").innerHTML = runs.map(r => `<option value="${esc(r.run)}">${esc(r.run)}${r.done?"":" (running)"}</option>`).join("")
     || '<option value="">no runs yet</option>';
-  if (runs.length && (!runId || (mode === "live" && !runs[0].done && /^(real|offline)/.test(runs[0].run) && runs[0].run !== runId))) runId = runs[0].run; // follow a newly started run
+  if (runs.length && !pinned && (!runId || (mode === "live" && !runs[0].done && /^(real|offline)/.test(runs[0].run) && runs[0].run !== runId))) runId = runs[0].run; // follow a newly started run
   $("runPick").value = runId;
 }
 
@@ -234,11 +241,26 @@ function stopReplay() {
   load();
 }
 $("modeBtn").onclick = () => mode === "live" ? startReplay() : stopReplay();
-$("runPick").onchange = e => { runId = e.target.value; if (mode === "replay") stopReplay(); else load(); };
+$("runPick").onchange = e => { runId = e.target.value; if (mode === "replay") stopReplay(); else load(); refreshIns(); };
+
+let tab = "live";
+function setTab(t) {
+  tab = t;
+  $("tabLive").classList.toggle("on", t === "live"); $("tabIns").classList.toggle("on", t === "ins");
+  $("liveView").style.display = t === "live" ? "" : "none";
+  $("banner").style.display = t === "live" ? "" : "none";
+  $("insightsView").style.display = t === "ins" ? "" : "none";
+  if (t === "ins") refreshIns();
+}
+function refreshIns() { if (tab === "ins") renderInsights(runId); }
+$("tabLive").onclick = () => setTab("live");
+$("tabIns").onclick = () => setTab("ins");
+setInterval(refreshIns, 5000);
 document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") $("modeBtn").click(); });
 
 (async () => {
   await pickRuns(); if (runId) await load();
+  if (q.get("tab") === "ins") setTab("ins");
   setInterval(async () => { await pickRuns(); if (runId && mode === "live") await load(); }, 2000);
   setInterval(tick, 500);
 })();

@@ -31,9 +31,10 @@ def failure_report(ev: Eval, tasks_by_id: dict, limit: int = MAX_FAILURES_SHOWN)
         o = next((o for o in ev.outcomes if o.task_id == i and o.score < 1.0), None)
         if not o:
             continue
+        why = ("NO ANSWER: the builder used all its tokens thinking and returned no code." if not o.code
+               else f"Failed checks: {'; '.join(o.hidden_errors[:3])}")
         parts.append(f"### {t.id} (family: {t.family}, score {scores[i]:.2f})\nTask: {t.spec}\n"
-                     f"Team said done: {o.claimed_done}. Failed checks: {'; '.join(o.hidden_errors[:3])}\n"
-                     f"Code:\n{o.code[:700]}")
+                     f"Team said done: {o.claimed_done}. {why}\nCode:\n{o.code[:700]}")
     return "\n\n".join(parts)
 
 

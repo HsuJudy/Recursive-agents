@@ -68,3 +68,12 @@ def test_proposer_copy_check_excludes_test_tasks():
     phrase = " ".join(test_task.spec.split()[2:12])
     non_test = [t for t in TASKS if t.split != "test"]
     assert not copies_task_text(phrase, non_test) or True  # a generic phrase may coincide; just must not raise
+
+
+def test_failure_report_says_when_the_builder_ran_out_of_tokens():
+    from rah.evaluate import Eval
+    from rah.proposer import failure_report
+    from rah.team import Outcome
+    t = next(t for t in TASKS if t.split == "train")
+    ev = Eval(0, {t.id: t}, [Outcome(t.id, 0, code="", score=0.0, truncated=1)])
+    assert "NO ANSWER" in failure_report(ev, {t.id: t})

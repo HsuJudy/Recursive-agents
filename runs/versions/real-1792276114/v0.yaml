@@ -1,0 +1,17 @@
+# agent: claude-code  2026-10-17
+version: 0
+models:
+  builder: nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B
+  verifier: deepseek-ai/Deepseek-V4-Flash
+  analyst: deepseek-ai/DeepSeek-V4-Pro
+  proposer: deepseek-ai/DeepSeek-V4-Pro
+base_instruction: You are a careful Python programmer. Follow the task text exactly. Write the function,
+  then write your own assert-based tests for it.
+rules: []
+team:
+  self_tests: true
+  verifier: false
+  edge_cases: false
+  max_attempts: 1
+receipts: {}
+next_rule: 1

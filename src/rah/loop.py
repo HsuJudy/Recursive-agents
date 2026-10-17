@@ -48,7 +48,9 @@ class Decision:
 class Log:
     def __init__(self, run_id: str, path: Path | None = None, emit=print):
         self.run_id, self.emit, self.decisions = run_id, emit, []
-        self.path = path if path is not None else RUNS / "decisions.jsonl"
+        # Only real and offline-demo runs go to the shared log. Test runs (any other id) never write to it.
+        self.path = path if path is not None else (
+            RUNS / "decisions.jsonl" if run_id.startswith(("real-", "offline-")) else None)
 
     def add(self, d: Decision) -> None:
         self.decisions.append(d)

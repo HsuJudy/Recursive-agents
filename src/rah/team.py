@@ -33,6 +33,7 @@ class Outcome:
     attempts: int = 0
     self_pass: bool | None = None  # builder's own tests passed (None = no self tests)
     verifier_ok: bool | None = None
+    truncated: int = 0  # calls that ran out of tokens before answering
     verifier_unusable: bool = False  # the verifier gave no readable verdict (counted and reported, never hidden)
     claimed_done: bool = False
     stop_reason: str = ""
@@ -95,6 +96,7 @@ BUILDER_TEMPERATURE = 0.4  # above 0 so repeated samples of the same task can di
 def _call(llm, out: Outcome, model: str, messages: list, max_tokens: int = 12000, temperature: float = 0.0) -> str:
     r = llm.chat(model, messages, max_tokens=max_tokens, temperature=temperature)
     out.usage.append((model, r.prompt_tokens, r.completion_tokens))
+    out.truncated += int(r.truncated)
     return r.text
 
 
@@ -120,7 +122,9 @@ def run_task(llm, h: Harness, task: Task, sample: int = 0) -> Outcome:
             problem = None
             out.self_pass = None
             if code is None:
-                problem = "No code block was found."
+                problem = ("You ran out of room while thinking and gave no code. This time think far less: pick an "
+                           "approach quickly, then write the code and tests right away."
+                           if out.truncated and not text.strip() else "No code block was found.")
             else:
                 out.code = code
                 if want_tests:

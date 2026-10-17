@@ -15,7 +15,7 @@ from .config import Harness
 from .suite import Task
 from .team import Outcome, run_task
 
-CODE_VERSION = "2"  # bump when prompts, token budgets or scoring change, so old cached runs are not reused
+CODE_VERSION = "3"  # bump when prompts, token budgets or scoring change, so old cached runs are not reused
 MAX_ERROR_RATE = 0.25
 TASK_RETRIES = 2  # a run that ends in an error (dropped connection, bad reply) is tried again before it counts
 

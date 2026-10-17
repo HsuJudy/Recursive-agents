@@ -1,0 +1,87 @@
+{
+ "run": "real-1792277151",
+ "label": "real run on Crusoe Managed Inference",
+ "before_test": 0.18518518518518517,
+ "after_test": 0.9365079365079365,
+ "cost": 1.4365634,
+ "calls": 336,
+ "decisions": [
+  {
+   "round": 1,
+   "action": "keep",
+   "unit": "team:max_attempts",
+   "text": "team.max_attempts = 2",
+   "reason": "train improved, val held",
+   "numbers": {
+    "train": 0.7037037037037037,
+    "val": 0.888888888888889
+   },
+   "at": 1792278313.1215239
+  },
+  {
+   "round": 2,
+   "action": "reject",
+   "unit": "proposal",
+   "text": "(proposal)",
+   "reason": "not allowed: no failures on train tasks to learn from",
+   "numbers": {},
+   "at": 1792278313.122486
+  },
+  {
+   "round": 3,
+   "action": "reject",
+   "unit": "proposal",
+   "text": "(proposal)",
+   "reason": "not allowed: no failures on train tasks to learn from",
+   "numbers": {},
+   "at": 1792278313.122625
+  },
+  {
+   "round": 4,
+   "action": "reject",
+   "unit": "proposal",
+   "text": "(proposal)",
+   "reason": "not allowed: no failures on train tasks to learn from",
+   "numbers": {},
+   "at": 1792278313.122721
+  },
+  {
+   "round": 5,
+   "action": "reject",
+   "unit": "proposal",
+   "text": "(proposal)",
+   "reason": "not allowed: no failures on train tasks to learn from",
+   "numbers": {},
+   "at": 1792278313.1228101
+  },
+  {
+   "round": 6,
+   "action": "reject",
+   "unit": "proposal",
+   "text": "(proposal)",
+   "reason": "not allowed: no failures on train tasks to learn from",
+   "numbers": {},
+   "at": 1792278313.1229079
+  },
+  {
+   "round": 7,
+   "action": "reject",
+   "unit": "proposal",
+   "text": "(proposal)",
+   "reason": "not allowed: no failures on train tasks to learn from",
+   "numbers": {},
+   "at": 1792278313.1230028
+  },
+  {
+   "round": 0,
+   "action": "retain",
+   "unit": "team:max_attempts",
+   "text": "team.max_attempts = 2",
+   "reason": "ablation: removing it lowers the score",
+   "numbers": {
+    "worth": 0.741671335200747
+   },
+   "at": 1792279030.575263
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+ "run": "real-1792274607",
+ "label": "real run on Crusoe Managed Inference",
+ "before_test": 0.8378894767783657,
+ "after_test": 0.8378894767783657,
+ "cost": 0.27501089,
+ "calls": 266,
+ "decisions": [
+  {
+   "round": 1,
+   "action": "reject",
+   "unit": "team:max_attempts",
+   "text": "team.max_attempts = 2",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": 0.04814814814814816,
+    "val": 0.06514684146263096
+   },
+   "at": 1792274989.264354
+  },
+  {
+   "round": 2,
+   "action": "reject",
+   "unit": "rule:R1",
+   "text": "Before coding, list all validation and edge-case requirements from the spec, then verify your code handles each one exactly as specified.",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": -0.01798941798941797,
+    "val": 0.01543923912344967
+   },
+   "at": 1792275298.787627
+  },
+  {
+   "round": 3,
+   "action": "reject",
+   "unit": "rule:R1",
+   "text": "Before coding, identify all required validations, error types, and edge cases from the spec; implement them in the exact order specified, and never coerce or tolerate invalid input types.",
+   "reason": "train gain too small or within noise",
+   "numbers": {
+    "train": 0.005820105820105849,
+    "val": -0.017222543538332986
+   },
+   "at": 1792275569.242442
+  }
+ ]
+}

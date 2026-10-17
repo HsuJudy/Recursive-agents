@@ -12,11 +12,15 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import insights_data  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "runs"
@@ -101,6 +105,15 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/runs":
             show_all = parse_qs(u.query).get("all", ["0"])[0] == "1"
             return self._send(json.dumps(runs_list(show_all)).encode(), "application/json")
+        if u.path == "/insights.js":
+            return self._send(Path(__file__).with_name("insights.js").read_bytes(), "text/javascript; charset=utf-8")
+        if u.path == "/api/insights":
+            run = parse_qs(u.query).get("id", [""])[0]
+            try:
+                body = insights_data.build(run, _decisions())
+            except Exception as e:  # show the reason on the page instead of a blank tab
+                body = {"error": f"{type(e).__name__}: {e}"}
+            return self._send(json.dumps(body).encode(), "application/json")
         if u.path == "/api/run":
             run = parse_qs(u.query).get("id", [""])[0]
             return self._send(json.dumps(run_state(run)).encode(), "application/json")

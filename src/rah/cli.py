@@ -108,7 +108,7 @@ def cmd_run(a):
     vdir.mkdir(parents=True, exist_ok=True)
     h0.save(vdir / "v0.yaml")
     h1, ev1 = improve(llm, h_start or h0, tasks, a.rounds, a.k, cache, log, a.workers, save_dir=vdir,
-                      start_round=start_round, rejected=rejected)
+                      start_round=start_round, rejected=rejected, patience=a.patience)
     h2, _ = ablate(llm, h1, tasks, a.k, cache, log, a.workers)
     after_test = run_eval(llm, h2, test, a.k, a.workers, cache)
     before = run_eval(llm, h0, select(tasks, "train", "val"), a.k, a.workers, cache)
@@ -164,6 +164,7 @@ def main(argv=None):
     r.add_argument("--suite", default="base", choices=["base", "hard", "all", "dense"])
     r.add_argument("--k", type=int, default=3, help="samples per task")
     r.add_argument("--rounds", type=int, default=4)
+    r.add_argument("--patience", type=int, default=3, help="stop after this many rounds in a row with nothing kept")
     r.add_argument("--workers", type=int, default=8)
     r.add_argument("--harness", default=str(ROOT / "harness.yaml"))
     r.add_argument("--builder", help="override the builder model id")
