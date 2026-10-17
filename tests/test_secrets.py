@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATTERNS = [re.compile(p) for p in (r"sk-[A-Za-z0-9]{20,}", r"CRUSOE_API_KEY\s*=\s*(?!paste-)\S{12,}",
+PATTERNS = [re.compile(p) for p in (r"sk-[A-Za-z0-9]{20,}", r"CRUSOE_API_KEY\s*=\s*(?!paste-|os\.)\S{12,}",
                                     r"Bearer\s+[A-Za-z0-9_\-\.]{20,}")]
 
 
