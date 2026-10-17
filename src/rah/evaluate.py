@@ -15,6 +15,18 @@ from .config import Harness
 from .suite import Task
 from .team import Outcome, run_task
 
+CODE_VERSION = "1"  # bump when prompts, token budgets or scoring change, so old cached runs are not reused
+MAX_ERROR_RATE = 0.25
+
+
+class EvalFailed(RuntimeError):
+    pass
+
+
+def task_fingerprint(t: Task) -> str:
+    return hashlib.sha1((t.spec + "\x00" + "\x00".join(t.tests)).encode()).hexdigest()[:10]
+
+
 CACHE_PATH = Path(__file__).resolve().parents[2] / "runs" / "cache.jsonl"
 
 
@@ -98,13 +110,14 @@ def paired_delta(new: Eval, old: Eval, *splits: str) -> tuple[float, float]:
 
 
 def run_eval(llm, h: Harness, tasks: list[Task], k: int = 3, workers: int = 8, cache: Cache | None = None,
-             progress=None) -> Eval:
+             progress=None, sample_offset: int = 0) -> Eval:
+    """`sample_offset` picks a different range of sample numbers, i.e. fresh runs instead of cached ones."""
     fp = harness_fingerprint(h)
-    jobs = [(t, s) for t in tasks for s in range(k)]
+    jobs = [(t, s) for t in tasks for s in range(sample_offset, sample_offset + k)]
 
     def one(job):
         t, s = job
-        key = f"{fp}:{t.id}:{s}"
+        key = f"{CODE_VERSION}:{fp}:{task_fingerprint(t)}:{s}"
         o = cache.get(key) if cache else None
         if o is None:
             o = run_task(llm, h, t, s)
@@ -116,4 +129,8 @@ def run_eval(llm, h: Harness, tasks: list[Task], k: int = 3, workers: int = 8, c
 
     with ThreadPoolExecutor(max_workers=workers) as ex:
         outcomes = list(ex.map(one, jobs))
+    bad = [o for o in outcomes if o.error]
+    if len(bad) > MAX_ERROR_RATE * len(outcomes):
+        raise EvalFailed(f"{len(bad)} of {len(outcomes)} runs failed with an error, e.g. {bad[0].error}. "
+                         "Check the key, the model ids (rah models) and the rate limits.")
     return Eval(h.version, {t.id: t for t in tasks}, outcomes)

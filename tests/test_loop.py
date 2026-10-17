@@ -15,7 +15,7 @@ def _run(rounds=4):
     h0 = Harness().with_change({"kind": "add_rule", "text": DECOY})
     log = Log("test", path=None, emit=lambda s: None)
     h1, ev1 = improve(llm, h0, TASKS, rounds, 1, Cache(None), log)
-    h2, _ = ablate(llm, h1, TASKS, 1, Cache(None), log, ev=ev1)
+    h2, _ = ablate(llm, h1, TASKS, 1, Cache(None), log)
     return h0, h1, h2, log
 
 

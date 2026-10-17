@@ -102,4 +102,4 @@ def propose(llm, h: Harness, ev: Eval, all_tasks: list[Task], rejected: list[str
             'Reply with JSON only, e.g. {"kind":"add_rule","text":"..."} or '
             '{"kind":"set_team","key":"max_attempts","value":2}. A rule must be general advice, never mention a '
             "specific task or copy task wording.")}], max_tokens=500, thinking=False).text
-    return validate(_json(reply), h, all_tasks)
+    return validate(_json(reply), h, [t for t in all_tasks if t.split != "test"])

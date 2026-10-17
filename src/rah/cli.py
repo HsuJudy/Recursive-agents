@@ -38,6 +38,9 @@ def table(before: Eval, after: Eval, h0: Harness, h1: Harness, label: str, cost:
         tag = " (new kind of task)" if f == "money" else ""
         out.append(_row(f"   test / {f}{tag}", before.mean("test", family=f), after.mean("test", family=f)))
     out.append(_row("said 'done' but was wrong", before.overconfidence("test"), after.overconfidence("test")))
+    nv = sum(o.verifier_unusable for o in after.outcomes)
+    if nv:
+        out.append(f"  note: the verifier gave no readable verdict in {nv} runs (treated as ok)")
     out.append(f"\n  kept changes: {len(h1.units())}   (started with {len(h0.units())})")
     for u in h1.units():
         r = h1.receipts.get(u, {})
@@ -75,7 +78,7 @@ def cmd_run(a):
     vdir.mkdir(parents=True, exist_ok=True)
     h0.save(vdir / "v0.yaml")
     h1, ev1 = improve(llm, h0, tasks, a.rounds, a.k, cache, log, a.workers, save_dir=vdir)
-    h2, _ = ablate(llm, h1, tasks, a.k, cache, log, a.workers, ev=ev1)
+    h2, _ = ablate(llm, h1, tasks, a.k, cache, log, a.workers)
     after_test = run_eval(llm, h2, test, a.k, a.workers, cache)
     before = run_eval(llm, h0, select(tasks, "train", "val"), a.k, a.workers, cache)
     after = run_eval(llm, h2, select(tasks, "train", "val"), a.k, a.workers, cache)

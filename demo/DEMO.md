@@ -14,7 +14,7 @@ Words used here: **harness** = the team's rules and settings file. **Cache** = a
 
 Before you start: cache is warm, terminal is in `/Users/creator/Atlas/_index/code/crusoe-recursive-agents`, font is large, Wi-Fi is on.
 
-IMPORTANT (read before the first warm-up): a real run overwrites `harness.yaml` with the improved version when it finishes. The next run then starts from that improved file, so its cache keys differ and it will NOT replay cleanly. So: before the warm-up run `cp harness.yaml harness.start.yaml`; before every rehearsal and the live demo run `cp harness.start.yaml harness.yaml`. (If you are unsure, use `--harness harness.start.yaml` on the command; that flag exists.)
+NOTE: a real run no longer overwrites `harness.yaml`; the improved harness is saved to `harness.improved.yaml`. The starting file stays the same, so cached results replay. Do not edit `harness.yaml` between the warm-up run and the demo.
 
 | Time | Beat | Type this | Say this |
 |---|---|---|---|
@@ -52,7 +52,7 @@ Cached results replay from `runs/cache.jsonl` (the code reads it automatically; 
 
 0. Prevention: warm the cache with one full run the night before and again at the venue. Back up the cache: `cp runs/cache.jsonl runs/cache.backup.jsonl`.
 1. Say nothing alarming. Say: "Wi-Fi is slow, so I will replay the saved run; the answers are the real saved model answers."
-2. Make sure the starting file is the original: `cp harness.start.yaml harness.yaml`.
+2. Confirm `harness.yaml` is unchanged since the warm-up run: `git status harness.yaml` shows nothing.
 3. Run the same command as the warm-up, with the same flags: `uv run rah run --k 3 --rounds 4`. Same flags matter: the cache is matched on exact settings, so a different `--k`, `--rounds` or harness will try to call the API.
 4. If it still tries to reach the API and hangs: stop it (Ctrl+C), restore `cp runs/cache.backup.jsonl runs/cache.jsonl`, repeat step 2 and 3.
 5. If the cache is missing or broken: run `uv run rah run --offline`. It is a free scripted stand-in and prints the label "OFFLINE stand-in, not a model result". You must say that out loud. It shows the wiring only, never claim its numbers as model results.
@@ -96,10 +96,10 @@ Do these in order. Tick each one.
 - [ ] Billing card is added on the Crusoe account (needed for the higher request rate). Alexandra does this herself; the agent cannot.
 - [ ] `uv run rah models` prints model ids; the builder, verifier, proposer ids in `harness.yaml` are in that list.
 - [ ] `uv run pytest -q` passes (87 tests).
-- [ ] `cp harness.yaml harness.start.yaml` done BEFORE the first real run.
+- [ ] Nothing edited in `harness.yaml` since the first real run (`git status harness.yaml` is clean).
 - [ ] Cache warmed: one full `uv run rah run --k 3 --rounds 4` finished. Optionally also one with `--swap-builder [MODEL ID]`.
 - [ ] `runs/cache.jsonl` exists and is backed up to `runs/cache.backup.jsonl`.
-- [ ] `cp harness.start.yaml harness.yaml` done again, then a rehearsal replay with the exact demo command finishes fast with no API errors.
+- [ ] A rehearsal replay with the exact demo command finishes fast with no API errors.
 - [ ] Placeholders in Sections 1, 2 and 4 are filled from the real result, and the spoken numbers match the screen.
 - [ ] Terminal font size large (readable from the back of the room, around 20 to 24 pt), dark theme, notifications off, battery charged, charger plugged in.
 - [ ] Terminal opened in the project folder and `clear`ed.

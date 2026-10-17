@@ -33,6 +33,7 @@ class Outcome:
     attempts: int = 0
     self_pass: bool | None = None  # builder's own tests passed (None = no self tests)
     verifier_ok: bool | None = None
+    verifier_unusable: bool = False  # the verifier gave no readable verdict (counted and reported, never hidden)
     claimed_done: bool = False
     stop_reason: str = ""
     score: float = 0.0
@@ -59,7 +60,7 @@ class Outcome:
 
 
 def parse_reply(text: str, want_tests: bool) -> tuple[str | None, str | None]:
-    blocks = re.findall(r"```(?:python|py)?[ \t]*\n(.*?)```", text, flags=re.S)
+    blocks = re.findall(r"```[A-Za-z0-9]*[ \t]*\n(.*?)```", text, flags=re.S)
     if not blocks:
         return (text.strip() or None), None
     code, tests = blocks[0], (blocks[1] if len(blocks) > 1 else None)
@@ -76,7 +77,8 @@ def parse_reply(text: str, want_tests: bool) -> tuple[str | None, str | None]:
     return code, tests
 
 
-def parse_verdict(text: str) -> tuple[bool, str]:
+def parse_verdict(text: str) -> tuple[bool | None, str]:
+    """(ok, issue). ok is None when there is no readable verdict."""
     m = re.search(r"\{.*\}", text, flags=re.S)
     if m:
         try:
@@ -84,13 +86,13 @@ def parse_verdict(text: str) -> tuple[bool, str]:
             return bool(d.get("ok")), str(d.get("issue", ""))[:300]
         except (ValueError, AttributeError):
             pass
-    return True, "unparseable verdict (treated as ok)"
+    return None, "no readable verdict"
 
 
 BUILDER_TEMPERATURE = 0.4  # above 0 so repeated samples of the same task can differ (that spread is the noise)
 
 
-def _call(llm, out: Outcome, model: str, messages: list, max_tokens: int = 3000, temperature: float = 0.0) -> str:
+def _call(llm, out: Outcome, model: str, messages: list, max_tokens: int = 4000, temperature: float = 0.0) -> str:
     r = llm.chat(model, messages, max_tokens=max_tokens, temperature=temperature)
     out.usage.append((model, r.prompt_tokens, r.completion_tokens))
     return r.text
@@ -106,7 +108,7 @@ def run_task(llm, h: Harness, task: Task, sample: int = 0) -> Outcome:
             edge = _call(llm, out, h.models["builder"], [
                 {"role": "system", "content": h.system_prompt()},
                 {"role": "user", "content": f"Task:\n{task.spec}\n\nList the 6 trickiest inputs for this task, "
-                                            "each with the exact expected output, one per line. No code."}], 800,
+                                            "each with the exact expected output, one per line. No code."}], 1500,
                          BUILDER_TEMPERATURE)
             user += f"\n\nEdge cases to handle:\n{edge}"
         messages = [{"role": "system", "content": h.system_prompt()}, {"role": "user", "content": user}]
@@ -126,7 +128,7 @@ def run_task(llm, h: Harness, task: Task, sample: int = 0) -> Outcome:
                     if not stmts:
                         out.self_pass, problem = False, "Your tests were missing or not valid Python."
                     else:
-                        r = run_tests(code, stmts)
+                        r = run_tests(code, stmts, shared=True)
                         out.self_pass = r.all_passed
                         if not r.all_passed:
                             problem = f"Your own tests failed: {r.errors[0]}"
@@ -137,9 +139,17 @@ def run_task(llm, h: Harness, task: Task, sample: int = 0) -> Outcome:
                                                   "reasoning. Check every requirement in the task text."},
                     {"role": "user", "content": f"Task:\n{task.spec}\n\nCode:\n```python\n{code}\n```\n\n"
                                                 'Reply with JSON only: {"ok": true or false, "issue": "the first '
-                                                'requirement it breaks, or empty"}'}], 600)
+                                                'requirement it breaks, or empty"}'}], 1500)
                 out.verifier_ok, issue = parse_verdict(v)
-                if not out.verifier_ok:
+                if out.verifier_ok is None:  # reasoning models can run out of room; try once more, then say so
+                    v = _call(llm, out, h.models["verifier"], [
+                        {"role": "user", "content": f"Task:\n{task.spec}\n\nCode:\n```python\n{code}\n```\n\n"
+                                                    'Does the code meet every requirement? Reply with ONLY this JSON: '
+                                                    '{"ok": true, "issue": ""} or {"ok": false, "issue": "..."}'}], 3000)
+                    out.verifier_ok, issue = parse_verdict(v)
+                    if out.verifier_ok is None:
+                        out.verifier_unusable, out.verifier_ok = True, True
+                if out.verifier_ok is False:
                     problem = f"A reviewer found a problem: {issue}"
             if problem is None:
                 out.claimed_done = True

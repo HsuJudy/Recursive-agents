@@ -82,7 +82,7 @@ def improve(llm, h: Harness, tasks: list[Task], rounds: int, k: int, cache: Cach
         d_tr, se_tr = paired_delta(cand_ev, cur_ev, "train")
         d_va, se_va = paired_delta(cand_ev, cur_ev, "val")
         nums = {"train": d_tr, "val": d_va}
-        if d_tr >= MIN_TRAIN_GAIN and d_va >= -VAL_TOLERANCE:
+        if d_tr >= max(MIN_TRAIN_GAIN, se_tr) and d_va >= -VAL_TOLERANCE:  # gain must also beat its own noise
             cand.receipts[unit] = {"round": r, "train_delta": round(d_tr, 3), "train_se": round(se_tr, 3),
                                    "val_delta": round(d_va, 3), "val_se": round(se_va, 3),
                                    "builder": cand.models["builder"]}
@@ -91,24 +91,28 @@ def improve(llm, h: Harness, tasks: list[Task], rounds: int, k: int, cache: Cach
             if save_dir:
                 cur.save(save_dir / f"v{cur.version}.yaml")
         else:
-            why = "train gain too small" if d_tr < MIN_TRAIN_GAIN else "val dropped (overfit to train)"
+            why = "train gain too small or within noise" if d_tr < max(MIN_TRAIN_GAIN, se_tr) else "val dropped (overfit to train)"
             log.add(Decision(r, "reject", unit, text, why, nums))
             rejected.append(text[:60])
     return cur, cur_ev
 
 
+FRESH = 1000  # sample numbers for the removal check, so it uses new runs and not the gate's cached ones
+
+
 def ablate(llm, h: Harness, tasks: list[Task], k: int, cache: Cache | None, log: Log, workers: int = 8,
-           ev: Eval | None = None, label: str = "ablation") -> tuple[Harness, Eval]:
-    """Remove each change in turn (oldest first). If the score does not fall, delete it for good."""
+           label: str = "ablation") -> tuple[Harness, Eval]:
+    """Remove each change in turn (oldest first). If the score does not fall, delete it for good.
+    Uses fresh samples, so it is independent evidence and not a re-read of the gate's numbers."""
     dev = _dev(tasks)
     cur = copy.deepcopy(h)
-    cur_ev = ev or run_eval(llm, cur, dev, k, workers, cache)
+    cur_ev = run_eval(llm, cur, dev, k, workers, cache, sample_offset=FRESH)
     for unit in list(h.units()):
         if unit not in cur.units():
             continue
         text = cur.describe(unit)
         without = cur.without_unit(unit)
-        wo_ev = run_eval(llm, without, dev, k, workers, cache)
+        wo_ev = run_eval(llm, without, dev, k, workers, cache, sample_offset=FRESH)
         drop, se = paired_delta(cur_ev, wo_ev, "train", "val")  # how much the change is worth
         nums = {"worth": drop}
         if drop >= MIN_ABLATION_DROP:

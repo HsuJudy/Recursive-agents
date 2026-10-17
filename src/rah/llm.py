@@ -54,7 +54,8 @@ def load_env(path: str | Path | None = None) -> None:
 
 def clean(text: str) -> str:
     """Drop hidden-reasoning blocks some models put in the visible text."""
-    return re.sub(r"<think>.*?</think>", "", text or "", flags=re.S).strip()
+    text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.S)
+    return re.sub(r"<think>.*$", "", text, flags=re.S).strip()  # an unclosed block means the answer never came
 
 
 class Meter:
@@ -104,10 +105,10 @@ class CrusoeLLM(Meter):
 
     def chat(self, model: str, messages: list[dict], max_tokens: int = 2048, temperature: float = 0.0,
              thinking: bool = False) -> Reply:
-        self.reserve_call()
         extra = {"chat_template_kwargs": {"thinking": True}} if thinking else None
         delay = 1.0
         for attempt in range(7):
+            self.reserve_call()  # every try counts against the cap, retries included
             try:
                 r = self.client.chat.completions.create(
                     model=model, messages=messages, max_tokens=max_tokens, temperature=temperature,
