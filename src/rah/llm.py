@@ -19,8 +19,8 @@ PRICES: dict[str, tuple[float, float]] = {
     "deepseek-ai/Deepseek-V4-Flash": (0.14, 0.28),
     "deepseek-ai/DeepSeek-V4-Pro": (1.74, 3.48),
     "google/gemma-4-31b-it": (0.14, 0.40),
-    "nvidia/Nemotron-3-Nano-30B-A3B": (0.05, 0.20),
-    "nvidia/Nemotron-3-Super-120B-A12B": (0.30, 2.40),
+    "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": (0.05, 0.20),
+    "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B": (0.30, 2.40),
     "openai/gpt-oss-120b": (0.05, 0.20),
     "zai-org/GLM-5.3-Flash": (0.15, 0.50),
 }

@@ -5,6 +5,18 @@ Everything in square brackets, like [BASELINE %], is a placeholder. Fill it in f
 
 Words used here: **harness** = the team's rules and settings file. **Cache** = a saved copy of earlier model answers, so a replay costs nothing and is fast. **Test tasks** = 16 tasks the team never learns from; they are only scored before and after.
 
+## Judging criteria map (say the word when it appears on screen)
+`demo/run_demo.sh` plays these in order; `uv run rah judge` scores each one with code probes (offline, no AI judge).
+| Judges look for | Where it shows | What to say |
+|---|---|---|
+| Autonomy | Step 1: one command, no prompts | "I start it and walk away." |
+| Long-running loop | Step 1: rounds, then a stated stop (rounds used up, or 3 rounds in a row with nothing kept) | "It runs until it is done or provably stuck." |
+| Recovery | Step 2: dropped connections are retried; the monitor stops repeat mistakes; a spend cap halts the run | "When something breaks it retries, or stops safely." |
+| Persistence | Step 2: stop the run, `--resume`, same result | "Progress survives a crash." |
+| Delegation | Step 3: builder, verifier, proposer on three different models | "A team of specialists, not one agent." |
+| Required stack | Nemotron builder on Crusoe Managed Inference | "All on Crusoe, builder is Nemotron." |
+| Clear demo | The before/after table on tasks never seen | "Here is the number." |
+
 ## 0. Rules to remember
 - Only show what was built today. Say it once: "Everything you see was written at this event."
 - The demo is a terminal. No dashboard, no slides with charts. Big font, dark background.

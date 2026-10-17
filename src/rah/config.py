@@ -15,7 +15,7 @@ import yaml
 MAX_RULE_CHARS = 200
 
 DEFAULT_MODELS = {
-    "builder": "nvidia/Nemotron-3-Nano-30B-A3B",
+    "builder": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
     "verifier": "deepseek-ai/Deepseek-V4-Flash",
     "analyst": "deepseek-ai/DeepSeek-V4-Pro",
     "proposer": "deepseek-ai/DeepSeek-V4-Pro",

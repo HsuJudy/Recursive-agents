@@ -4,6 +4,8 @@
   uv run rah models                       list the model ids the Crusoe key can use
   uv run rah run --offline                free dry run with the scripted stand-in (not a model result)
   uv run rah run --k 3 --rounds 4         real run on Crusoe
+  uv run rah run --resume RUN_ID          carry on a stopped run from its saved state
+  uv run rah judge [--gate]               demo-readiness scorecard against the judging criteria (offline, free)
   uv run rah run --swap-builder MODEL     ...then swap the builder model and re-audit every kept change
 """
 from __future__ import annotations
@@ -17,7 +19,7 @@ from pathlib import Path
 from .config import Harness
 from .evaluate import Cache, Eval, run_eval
 from .llm import CrusoeLLM, StubLLM
-from .loop import RUNS, Log, ablate, improve
+from .loop import RUNS, Log, ablate, improve, resume_state
 from .stub import DECOY, OfflineModel
 from .suite import load_suite, select
 
@@ -56,8 +58,28 @@ def cmd_models(_):
         print(m.id)
 
 
+def cmd_baseline(a):
+    """Score the starting harness on every task: shows whether there is room to improve."""
+    tasks = load_suite(a.suite)
+    h = Harness.load(a.harness)
+    if a.builder:
+        h = h.with_models(builder=a.builder)
+    llm, cache = CrusoeLLM(), Cache()
+    ev = run_eval(llm, h, tasks, a.k, a.workers, cache)
+    print(f"builder {h.models['builder']}  k={a.k}")
+    for sp in ("train", "val", "test"):
+        print(f"  {sp:<6}{ev.mean(sp):>6.0%}")
+    for f in sorted({t.family for t in tasks}):
+        print(f"  family {f:<10}{ev.mean(family=f):>6.0%}")
+    print(f"  said 'done' but wrong: {ev.overconfidence():.0%}   errors: {ev.errors()}   "
+          f"verifier-unusable: {sum(o.verifier_unusable for o in ev.outcomes)}")
+    worst = sorted(ev.task_scores().items(), key=lambda kv: kv[1])[:8]
+    print("  lowest tasks:", ", ".join(f"{i} {v:.0%}" for i, v in worst))
+    print(f"  calls {llm.calls}  spend ${llm.cost():.4f}")
+
+
 def cmd_run(a):
-    tasks = load_suite()
+    tasks = load_suite(a.suite)
     h0 = Harness.load(a.harness) if Path(a.harness).exists() else Harness()
     if a.builder:
         h0 = h0.with_models(builder=a.builder)
@@ -69,6 +91,14 @@ def cmd_run(a):
     else:
         llm, cache, label = CrusoeLLM(), Cache(), "real run on Crusoe Managed Inference"
         run_id = f"real-{int(time.time())}"
+    start_round, rejected, h_start = 0, [], None
+    if a.resume:  # carry on a stopped run: same id, latest saved harness, rounds already done are skipped
+        run_id = a.resume
+        h0 = Harness.load(RUNS / "versions" / run_id / "v0.yaml")
+        h_start, start_round, rejected = resume_state(run_id)
+        print(f"resuming {run_id} after round {start_round}")
+        if a.offline:
+            llm.handler.proposals = start_round  # the scripted stand-in is deterministic by round
     log = Log(run_id)
     print(f"run {run_id}: {len(tasks)} tasks, k={a.k}, rounds={a.rounds}, builder={h0.models['builder']}")
     test = select(tasks, "test")
@@ -77,7 +107,8 @@ def cmd_run(a):
     vdir = RUNS / "versions" / run_id
     vdir.mkdir(parents=True, exist_ok=True)
     h0.save(vdir / "v0.yaml")
-    h1, ev1 = improve(llm, h0, tasks, a.rounds, a.k, cache, log, a.workers, save_dir=vdir)
+    h1, ev1 = improve(llm, h_start or h0, tasks, a.rounds, a.k, cache, log, a.workers, save_dir=vdir,
+                      start_round=start_round, rejected=rejected)
     h2, _ = ablate(llm, h1, tasks, a.k, cache, log, a.workers)
     after_test = run_eval(llm, h2, test, a.k, a.workers, cache)
     before = run_eval(llm, h0, select(tasks, "train", "val"), a.k, a.workers, cache)
@@ -100,19 +131,50 @@ def cmd_run(a):
         "cost": llm.cost(), "calls": llm.calls, "decisions": [d.__dict__ for d in log.decisions]}, indent=1))
 
 
+def cmd_judge(a):
+    from . import judge
+    checks = judge.run_all()
+    print(judge.render(checks))
+    prev = judge.last_record()
+    bad = judge.regressions(checks, prev)
+    if prev:
+        print(f"\n  last recorded: {prev['overall']:.0%} ({prev['label']})   now: {judge.overall(checks):.0%}")
+    if a.gate and (bad or (prev and judge.overall(checks) < prev["overall"])):
+        print(f"  GATE: REJECT. Previously passing checks now failing: {bad or 'none (score fell)'}")
+        sys.exit(1)
+    if a.gate:
+        print("  GATE: KEEP (no regressions)")
+    if not a.no_record:
+        judge.record(checks, a.label)
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="rah")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("models").set_defaults(fn=cmd_models)
+    b = sub.add_parser("baseline")
+    b.add_argument("--k", type=int, default=2)
+    b.add_argument("--workers", type=int, default=8)
+    b.add_argument("--harness", default=str(ROOT / "harness.yaml"))
+    b.add_argument("--builder")
+    b.add_argument("--suite", default="base", choices=["base", "hard", "all", "dense"])
+    b.set_defaults(fn=cmd_baseline)
     r = sub.add_parser("run")
     r.add_argument("--offline", action="store_true")
+    r.add_argument("--suite", default="base", choices=["base", "hard", "all", "dense"])
     r.add_argument("--k", type=int, default=3, help="samples per task")
     r.add_argument("--rounds", type=int, default=4)
     r.add_argument("--workers", type=int, default=8)
     r.add_argument("--harness", default=str(ROOT / "harness.yaml"))
     r.add_argument("--builder", help="override the builder model id")
+    r.add_argument("--resume", metavar="RUN_ID", help="carry on a stopped run from its last saved state")
     r.add_argument("--swap-builder", help="after the run, swap the builder to this model and re-audit")
     r.set_defaults(fn=cmd_run)
+    j = sub.add_parser("judge", help="demo-readiness scorecard against the judging criteria (offline, free)")
+    j.add_argument("--label", default="manual")
+    j.add_argument("--gate", action="store_true", help="exit 1 if any previously passing check now fails")
+    j.add_argument("--no-record", action="store_true")
+    j.set_defaults(fn=cmd_judge)
     a = p.parse_args(argv)
     a.fn(a)
 

@@ -22,7 +22,7 @@ FORMAT = (
     "2) your own tests for it, as plain `assert` lines, no imports of the solution (it is already loaded)."
 )
 FORMAT_NO_TESTS = "Reply with one fenced python block: the solution (only the function and any imports it needs)."
-TOKEN_BUDGET = 14000  # completion tokens per task before the monitor stops the run
+TOKEN_BUDGET = 60000  # completion tokens per task before the monitor stops the run
 
 
 @dataclass
@@ -92,7 +92,7 @@ def parse_verdict(text: str) -> tuple[bool | None, str]:
 BUILDER_TEMPERATURE = 0.4  # above 0 so repeated samples of the same task can differ (that spread is the noise)
 
 
-def _call(llm, out: Outcome, model: str, messages: list, max_tokens: int = 4000, temperature: float = 0.0) -> str:
+def _call(llm, out: Outcome, model: str, messages: list, max_tokens: int = 12000, temperature: float = 0.0) -> str:
     r = llm.chat(model, messages, max_tokens=max_tokens, temperature=temperature)
     out.usage.append((model, r.prompt_tokens, r.completion_tokens))
     return r.text

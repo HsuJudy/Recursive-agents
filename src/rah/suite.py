@@ -24,10 +24,21 @@ class Task:
     reference: str  # known-good solution (used to validate the suite itself)
 
 
-def load_suite() -> list[Task]:
+def load_suite(name: str = "base") -> list[Task]:
+    """base = the 34 original tasks; hard = the 12 harder spares; all = both."""
     from .suite_data import TASKS
+    from .suite_hard import HARD_TASKS
 
-    return list(TASKS)
+    if name == "dense":  # requirement-dense tasks (8-10 requirements each), written to leave room to improve
+        import importlib
+        out = []
+        for mod, attr in (("dense_a", "DENSE_A"), ("dense_b", "DENSE_B"), ("dense_c", "DENSE_C")):
+            try:
+                out += list(getattr(importlib.import_module(f"rah.{mod}"), attr))
+            except ModuleNotFoundError:
+                pass
+        return out
+    return {"base": list(TASKS), "hard": list(HARD_TASKS), "all": list(TASKS) + list(HARD_TASKS)}[name]
 
 
 def select(tasks: list[Task], *splits: str) -> list[Task]:

@@ -15,8 +15,9 @@ from .config import Harness
 from .suite import Task
 from .team import Outcome, run_task
 
-CODE_VERSION = "1"  # bump when prompts, token budgets or scoring change, so old cached runs are not reused
+CODE_VERSION = "2"  # bump when prompts, token budgets or scoring change, so old cached runs are not reused
 MAX_ERROR_RATE = 0.25
+TASK_RETRIES = 2  # a run that ends in an error (dropped connection, bad reply) is tried again before it counts
 
 
 class EvalFailed(RuntimeError):
@@ -121,6 +122,10 @@ def run_eval(llm, h: Harness, tasks: list[Task], k: int = 3, workers: int = 8, c
         o = cache.get(key) if cache else None
         if o is None:
             o = run_task(llm, h, t, s)
+            for _ in range(TASK_RETRIES):
+                if not o.error:
+                    break
+                o = run_task(llm, h, t, s)  # recover: try again; only a run that keeps failing counts as failed
             if cache:
                 cache.put(key, o)
         if progress:

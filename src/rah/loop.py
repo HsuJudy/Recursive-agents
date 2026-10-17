@@ -25,6 +25,8 @@ MIN_TRAIN_GAIN = 0.03  # a change must lift train by at least this (mean score, 
 VAL_TOLERANCE = 0.02  # val may move this much against us before we call it a drop (noise allowance)
 MIN_ABLATION_DROP = 0.02  # removing a kept change must cost at least this, or the change is deleted
 
+PATIENCE = 3  # stop early after this many rounds in a row with nothing kept: the loop is stuck, not working
+
 RUNS = Path(__file__).resolve().parents[2] / "runs"
 
 
@@ -61,19 +63,45 @@ def _dev(tasks: list[Task]) -> list[Task]:
     return select(tasks, "train", "val")
 
 
+def resume_state(run_id: str, runs_dir: Path = RUNS) -> tuple[Harness, int, list[str]]:
+    """Rebuild where a stopped run was: latest saved harness, rounds already done, texts already rejected."""
+    vdir = runs_dir / "versions" / run_id
+    files = [(int(p.stem[1:]), p) for p in vdir.glob("v*.yaml") if p.stem[1:].isdigit()]
+    if not files:
+        raise FileNotFoundError(f"nothing saved for run {run_id} in {vdir}")
+    h = Harness.load(max(files)[1])
+    done, rejected = 0, []
+    path = runs_dir / "decisions.jsonl"
+    for line in path.read_text().splitlines() if path.exists() else []:
+        d = json.loads(line)
+        if d.get("run") == run_id and d.get("round", 0) > 0:
+            done = max(done, d["round"])
+            if d["action"] == "reject":
+                rejected.append(d["text"][:60])
+    return h, done, rejected
+
+
 def improve(llm, h: Harness, tasks: list[Task], rounds: int, k: int, cache: Cache | None, log: Log,
-            workers: int = 8, base_ev: Eval | None = None, save_dir: Path | None = None) -> tuple[Harness, Eval]:
+            workers: int = 8, base_ev: Eval | None = None, save_dir: Path | None = None,
+            start_round: int = 0, rejected: list[str] | None = None,
+            patience: int = PATIENCE) -> tuple[Harness, Eval]:
+    """`start_round` and `rejected` let a stopped run carry on (see resume_state). `patience` is the stop rule."""
     dev = _dev(tasks)
     cur, cur_ev = h, base_ev or run_eval(llm, h, dev, k, workers, cache)
     log.emit(f"baseline: train {cur_ev.mean('train'):.2f}  val {cur_ev.mean('val'):.2f}  "
              f"overconfident runs {cur_ev.overconfidence():.0%}")
-    rejected: list[str] = []
-    for r in range(1, rounds + 1):
+    rejected = list(rejected or [])
+    misses = 0  # rounds in a row with nothing kept
+    for r in range(start_round + 1, rounds + 1):
+        if misses >= patience:
+            log.emit(f"stopping early: {misses} rounds in a row with nothing kept (patience {patience})")
+            break
         try:
             change = propose(llm, cur, cur_ev, tasks, rejected)
         except ProposalRejected as e:
             log.add(Decision(r, "reject", "proposal", "(proposal)", f"not allowed: {e}"))
             rejected.append(str(e)[:60])
+            misses += 1
             continue
         text = change.get("text") or f"team.{change.get('key')} = {change.get('value')}"
         cand = cur.with_change(change)
@@ -88,12 +116,14 @@ def improve(llm, h: Harness, tasks: list[Task], rounds: int, k: int, cache: Cach
                                    "builder": cand.models["builder"]}
             log.add(Decision(r, "keep", unit, text, "train improved, val held", nums))
             cur, cur_ev = cand, cand_ev
+            misses = 0
             if save_dir:
                 cur.save(save_dir / f"v{cur.version}.yaml")
         else:
             why = "train gain too small or within noise" if d_tr < max(MIN_TRAIN_GAIN, se_tr) else "val dropped (overfit to train)"
             log.add(Decision(r, "reject", unit, text, why, nums))
             rejected.append(text[:60])
+            misses += 1
     return cur, cur_ev
 
 
