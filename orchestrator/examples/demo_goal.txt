@@ -1,0 +1,1 @@
+Research the top 3 approaches to building recursive multi-agent systems and write a short comparison with pros and cons.

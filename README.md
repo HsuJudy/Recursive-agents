@@ -7,6 +7,14 @@ Built at the Recursive Agents Hackathon (Cerebral Valley x Crusoe, 2026-10-17) o
 helps on tasks it trained on *and* does not hurt tasks it was checked against; then every kept change is removed
 one at a time and deleted if the score does not fall.
 
+## Two parts in one repo
+- **`orchestrator/`** is the walk-away team: an orchestrator that spawns Researcher, Coder, Tester and Critic
+  agents, keeps shared memory in a JSON file, recovers from failures and loops until the goal is done, with a web
+  dashboard. Run it from inside that folder (`cd orchestrator && python main.py "your goal"`); see its README.
+- **`src/rah/`** (everything below) is the proof layer: it makes a team improve itself and keeps a change only if it
+  measurably helps on tasks it never saw. `uv run rah judge` scores the repo against the hackathon criteria
+  (autonomy, delegation, persistence, recovery, long-running loop, stack, clear demo); `demo/run_demo.sh` plays it.
+
 ## What was built today (all of it)
 Everything in this repository was written during the hackathon. The idea of "keep a change only if it helps on
 held-out tasks" is old and common in machine learning; the code, tasks and harness here are new. No code,
