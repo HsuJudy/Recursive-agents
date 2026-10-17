@@ -19,8 +19,8 @@ Words used here: **harness** = the team's rules and settings file. **Cache** = a
 
 ## 0. Rules to remember
 - Only show what was built today. Say it once: "Everything you see was written at this event."
-- The demo is a terminal. No dashboard, no slides with charts. Big font, dark background.
-- Every command below is real and checked against `src/rah/cli.py`. The flags that exist: `--offline`, `--k`, `--rounds`, `--workers`, `--harness`, `--builder`, `--swap-builder`.
+- The demo is a terminal. For the "walk away" beat there is also a read-only live page: `python3 demo/serve.py`, then open http://127.0.0.1:8765. It follows `runs/decisions.jsonl`, shows keep / reject / delete cards, and has a replay button (key R) as a Wi-Fi fallback. Big font, dark background.
+- Every command below is real and checked against `src/rah/cli.py`. The flags that exist: `--offline`, `--k`, `--rounds`, `--workers`, `--harness`, `--builder`, `--resume`, `--swap-builder`.
 
 ## 1. Live run-of-show (3:00)
 
@@ -98,7 +98,7 @@ Tasks are small functions, not large codebases. The removal check takes out one 
 Plug in a team's own real tasks as the suite, and the same loop gives them a harness whose every rule has a receipt and can be audited again whenever the model changes. [Fill in one concrete next step you really plan.]
 
 **Is that a dashboard?**
-No. It is a terminal command; the output is text.
+The proof layer (`rah run`) is a terminal command and its output is text. A small read-only page (`demo/serve.py`) shows the same decisions live and can replay a finished run. The separate `orchestrator/` project has its own dashboard.
 
 ## 5. Pre-demo checklist
 

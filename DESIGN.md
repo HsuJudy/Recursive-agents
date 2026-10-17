@@ -39,7 +39,7 @@ does not fall by more than 2 (paired, same tasks). 4. Repeat for N rounds. 5. **
 in turn, oldest first; delete it if the score falls by less than 2 points. 6. Score unseen `test` before and after.
 7. Optional: swap builder model, run step 5 again.
 
-## Demo (3 minutes, live, terminal; no dashboard)
+## Demo (3 minutes, live, terminal plus a read-only live page)
 Baseline on unseen tasks, then the loop streaming keep/reject/delete lines, then before and after on unseen tasks,
 the overconfidence number, then the model swap. Results are cached, so the live run replays quickly; a screen
 recording is the fallback if Wi-Fi fails.

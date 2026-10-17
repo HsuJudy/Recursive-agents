@@ -20,6 +20,19 @@ Everything in this repository was written during the hackathon. The idea of "kee
 held-out tasks" is old and common in machine learning; the code, tasks and harness here are new. No code,
 tasks or data were copied from another project or from a public benchmark.
 
+## Live demo page
+`python3 demo/serve.py`, then open http://127.0.0.1:8765. A read-only page that follows `runs/decisions.jsonl` while
+`uv run rah run ...` works: a card per decision (kept, rejected, deleted, proved), a clock, and a "goal complete"
+banner with the before and after scores on unseen tasks. Press R to replay a finished run. Any run that is not a
+real Crusoe run is labelled as an offline stand-in on the page.
+
+## How this matches the hackathon theme
+- **Walk away:** one command starts a run; `--resume RUN_ID` carries on from saved state after a stop.
+- **Recovery:** a bad change is rejected by the gate and a useless one is deleted by the removal check; the team carries on.
+- **Delegation:** three Crusoe models with three jobs (builder, verifier, proposer); the gate and monitor are plain code.
+- **Recursion:** the team changes its own rules and settings, and every change has to survive being removed again.
+- **Checked by code:** `uv run rah judge` scores the repo against the judging criteria with no AI judge.
+
 ## How it works
 - **34 invented coding tasks**, graded by hidden tests run in a separate process (plain code, no AI judge).
   Three splits: `train` (the proposer sees failures), `val` (decides keep or reject), `test` (never used to
