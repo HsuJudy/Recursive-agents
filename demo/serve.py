@@ -51,9 +51,19 @@ def _harness(run: str) -> dict:
     return {}
 
 
+TEAM_DEFAULTS = {"self_tests": True, "verifier": False, "edge_cases": False, "max_attempts": 1}
+
+
 def _final_rules(run: str) -> list[dict]:
+    """Every change that survived: written rules plus team settings that differ from their defaults."""
     p = RUNS / "versions" / run / "final.yaml"
-    return (yaml.safe_load(p.read_text()) or {}).get("rules", []) if p.exists() else []
+    if not p.exists():
+        return []
+    d = yaml.safe_load(p.read_text()) or {}
+    out = list(d.get("rules", []))
+    out += [{"text": f"team setting: {k} = {v}"} for k, v in (d.get("team") or {}).items()
+            if k in TEAM_DEFAULTS and v != TEAM_DEFAULTS[k]]
+    return out
 
 
 def runs_list(show_all: bool = False) -> list[dict]:

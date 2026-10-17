@@ -111,7 +111,7 @@
       <div class="sub" id="cost"></div>
     </div>
     <div class="panel" id="rulesPanel" style="display:none">
-      <h2>Rules that survived</h2>
+      <h2>Changes that survived</h2>
       <ul class="rules" id="rules" style="margin:0;padding-left:20px"></ul>
     </div>
   </aside>
@@ -188,7 +188,7 @@ function render() {
     ban.className = "banner show";
     ban.innerHTML = `<h3>GOAL COMPLETE</h3>
       <p>On tasks it never saw: <b>${pct(s.before_test)} → ${pct(s.after_test)}</b> (${delta>=0?"+":""}${delta} points).</p>
-      <p>${kept} rule${kept===1?"":"s"} survived. ${n("reject")} proposal${n("reject")===1?"":"s"} rejected, ${del} dead-weight rule${del===1?"":"s"} deleted.</p>
+      <p>${kept} change${kept===1?"":"s"} survived. ${n("reject")} proposal${n("reject")===1?"":"s"} rejected, ${del} dead-weight change${del===1?"":"s"} deleted.</p>
       <small>${state.offline ? "OFFLINE stand-in run, not a model result." : "Real run on Crusoe Managed Inference."}</small>`;
     $("rules").innerHTML = state.final_rules.map(r => `<li>${esc(r.text)}</li>`).join("") || "<li>none</li>";
   } else $("banner").className = "banner";
