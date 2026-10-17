@@ -1,8 +1,6 @@
+.env
+.venv/
 __pycache__/
 *.pyc
-.env
-shared_memory.json
-.venv/
-venv/
-*.egg-info/
-.DS_Store
+.pytest_cache/
+runs/cache.jsonl

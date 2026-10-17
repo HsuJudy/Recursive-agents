@@ -1,0 +1,247 @@
+<!doctype html>
+<!-- agent: claude-code  2026-10-17 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walk Away Team</title>
+<style>
+  :root {
+    --bg:#0b0f17; --panel:#141b27; --line:#243044; --text:#eef2f8; --dim:#93a1b8;
+    --proposer:#5aa9ff; --builder:#43d18a; --gate:#ffc247; --removal:#b88cff;
+    --keep:#43d18a; --reject:#ff6b6b; --delete:#ff9d4d; --retain:#43d18a;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:20px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  header { padding:20px 32px; border-bottom:1px solid var(--line); }
+  .goal-label { font-size:14px; letter-spacing:.14em; color:var(--dim); text-transform:uppercase; }
+  .goal { font-size:34px; font-weight:700; margin:4px 0 12px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .badge { padding:4px 14px; border-radius:99px; font-weight:700; font-size:16px; letter-spacing:.06em; }
+  .live { background:#16382a; color:var(--keep); } .live::before { content:"● "; animation:pulse 1.2s infinite; }
+  .replay { background:#3a2f12; color:var(--gate); } .complete { background:#16382a; color:var(--keep); }
+  .waiting { background:#243044; color:var(--dim); }
+  @keyframes pulse { 50% { opacity:.25; } }
+  .offline { margin-top:12px; padding:10px 16px; background:#3a2f12; border:1px solid var(--gate); border-radius:10px; color:var(--gate); font-weight:600; }
+  .chip { padding:6px 14px; border-radius:10px; background:var(--panel); border:1px solid var(--line); font-size:16px; }
+  .chip b { margin-right:8px; }
+  .dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px; }
+  main { display:grid; grid-template-columns: 1fr 380px; gap:24px; padding:24px 32px; }
+  @media (max-width:1000px) { main { grid-template-columns:1fr; } }
+  h2 { font-size:15px; letter-spacing:.14em; color:var(--dim); text-transform:uppercase; margin:0 0 12px; font-weight:600; }
+  .feed { display:flex; flex-direction:column; gap:14px; }
+  .empty { color:var(--dim); padding:40px; text-align:center; border:2px dashed var(--line); border-radius:14px; font-size:24px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-left:8px solid var(--c); border-radius:12px; padding:16px 20px; animation:slide .5s ease-out; }
+  @keyframes slide { from { opacity:0; transform:translateY(-14px); } }
+  .card.keep { --c:var(--keep); } .card.reject { --c:var(--reject); } .card.delete { --c:var(--delete); } .card.retain { --c:var(--retain); }
+  .verdict { font-size:15px; font-weight:800; letter-spacing:.1em; color:var(--c); }
+  .rule { font-size:24px; font-weight:600; margin:4px 0 8px; }
+  .chain { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:15px; margin-bottom:8px; }
+  .step { padding:2px 10px; border-radius:6px; background:#0b0f17; border:1px solid var(--col); color:var(--col); font-weight:600; }
+  .arrow { color:var(--dim); }
+  .why { color:var(--dim); font-size:17px; }
+  .recover { margin-top:8px; padding:6px 12px; background:#2a1517; border-radius:8px; color:#ffb3b3; font-size:16px; }
+  .recover.good { background:#13281f; color:#9ee8c0; }
+  aside .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin-bottom:18px; }
+  .clock { font-size:56px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .sub { color:var(--dim); font-size:16px; }
+  .counts { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
+  .counts div b { display:block; font-size:42px; line-height:1.1; }
+  .counts div span { font-size:13px; letter-spacing:.08em; color:var(--dim); text-transform:uppercase; }
+  .bar { height:34px; background:#0b0f17; border-radius:8px; overflow:hidden; margin:6px 0 12px; position:relative; }
+  .bar i { display:block; height:100%; border-radius:8px; }
+  .bar span { position:absolute; left:12px; top:3px; font-weight:700; font-size:18px; }
+  .banner { display:none; padding:22px 28px; margin:0 32px 0; border-radius:14px; background:linear-gradient(90deg,#14402d,#0f2b3d); border:2px solid var(--keep); }
+  .banner.show { display:block; animation:slide .6s ease-out; }
+  .banner h3 { margin:0 0 6px; font-size:34px; color:var(--keep); }
+  .banner p { margin:4px 0; font-size:24px; }
+  .banner small { color:var(--dim); font-size:16px; }
+  .tools { margin-left:auto; display:flex; gap:10px; align-items:center; font-size:15px; color:var(--dim); }
+  select, button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:15px; cursor:pointer; }
+  button.on { border-color:var(--gate); color:var(--gate); }
+  .rules li { margin:4px 0; font-size:17px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="goal-label">Current goal</div>
+  <div class="goal">Make an AI coding team measurably better, and delete every change that can't prove it helped.</div>
+  <div class="row">
+    <span id="badge" class="badge waiting">WAITING</span>
+    <span class="chip" id="endpoint"></span>
+    <span id="models" class="row"></span>
+    <div class="tools">
+      <select id="runPick" title="Which run to show"></select>
+      <button id="modeBtn" title="Replay the run at demo speed (key: R)">Replay</button>
+    </div>
+  </div>
+  <div id="offline" class="offline" style="display:none">OFFLINE STAND-IN: this run uses a scripted fake model, not Crusoe. It proves the wiring only. Not a model result.</div>
+</header>
+
+<div class="banner" id="banner" style="margin-top:24px"></div>
+
+<main>
+  <section>
+    <h2>What the team is doing (newest first)</h2>
+    <div class="feed" id="feed"><div class="empty">Waiting for the team to start…<br><small class="sub">Run: uv run rah run --k 3 --rounds 4</small></div></div>
+  </section>
+  <aside>
+    <div class="panel">
+      <h2>Time since start</h2>
+      <div class="clock" id="clock">0:00</div>
+      <div class="sub" id="ago">–</div>
+    </div>
+    <div class="panel">
+      <h2>Scoreboard</h2>
+      <div class="counts">
+        <div><b id="nKeep" style="color:var(--keep)">0</b><span>kept</span></div>
+        <div><b id="nReject" style="color:var(--reject)">0</b><span>rejected</span></div>
+        <div><b id="nDelete" style="color:var(--delete)">0</b><span>deleted</span></div>
+        <div><b id="nRetain" style="color:var(--retain)">0</b><span>proved</span></div>
+      </div>
+    </div>
+    <div class="panel" id="scorePanel" style="display:none">
+      <h2>Tasks it never saw</h2>
+      <div class="sub">Before</div><div class="bar"><i id="barB" style="background:#4a566b"></i><span id="txtB"></span></div>
+      <div class="sub">After</div><div class="bar"><i id="barA" style="background:var(--keep)"></i><span id="txtA"></span></div>
+      <div class="sub" id="cost"></div>
+    </div>
+    <div class="panel" id="rulesPanel" style="display:none">
+      <h2>Rules that survived</h2>
+      <ul class="rules" id="rules" style="margin:0;padding-left:20px"></ul>
+    </div>
+  </aside>
+</main>
+
+<script>
+const ROLE = {
+  proposer:{name:"Proposer", col:"#5aa9ff", key:"proposer"},
+  builder:{name:"Builder re-test", col:"#43d18a", key:"builder"},
+  gate:{name:"Gate", col:"#ffc247"},
+  removal:{name:"Removal check", col:"#b88cff"},
+};
+const $ = id => document.getElementById(id);
+const short = m => (m||"").split("/").pop();
+const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const fmt = s => { s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+const pct = x => Math.round(x*100)+"%";
+
+let state = null, mode = "live", shown = 0, replayT = null, replayStart = 0, runId = "";
+
+function steps(d) {
+  const p = ROLE.proposer, b = ROLE.builder, g = ROLE.gate, r = ROLE.removal;
+  const step = (role, text) => `<span class="step" style="--col:${role.col}">${text}</span>`;
+  const arr = '<span class="arrow">→</span>';
+  if (d.action === "keep" || d.action === "reject") {
+    const nums = d.numbers || {};
+    return step(p,"Proposer suggests a change") + arr + step(b,"Builder re-runs practice tasks") + arr
+      + step(g,"Gate: practice "+sgn(nums.train)+", checking "+sgn(nums.val));
+  }
+  return step(r,"Removal check: take it out, re-score") + arr + step(g,"worth "+sgn((d.numbers||{}).worth)+" pts");
+}
+const sgn = v => v==null ? "–" : (v>=0?"+":"")+Math.round(v*100);
+
+function card(d) {
+  const verb = {keep:"KEPT", reject:"REJECTED", delete:"DELETED", retain:"PROVED ITS WORTH"}[d.action] || d.action;
+  let extra = "";
+  if (d.action === "reject") extra = `<div class="recover">Problem caught: ${esc(d.reason)}. Change thrown out, team carries on.</div>`;
+  if (d.action === "delete") extra = `<div class="recover">Dead weight found: removing it did not hurt. Deleted.</div>`;
+  if (d.action === "keep") extra = `<div class="recover good">Earned its place: helped on practice tasks, did not hurt the checking tasks.</div>`;
+  if (d.action === "retain") extra = `<div class="recover good">Removing it lowers the score, so it stays.</div>`;
+  const where = d.round ? `Round ${d.round}` : "Removal check";
+  return `<div class="card ${d.action}"><div class="verdict">${verb} · ${where}</div>
+    <div class="rule">${esc(d.text)}</div><div class="chain">${steps(d)}</div>${extra}</div>`;
+}
+
+function render() {
+  if (!state) return;
+  const ds = state.decisions.slice(0, shown);
+  const n = a => ds.filter(d => d.action === a).length;
+  ["keep","reject","delete","retain"].forEach(a => $("n"+a[0].toUpperCase()+a.slice(1)).textContent = n(a));
+  $("feed").innerHTML = ds.length ? ds.slice().reverse().map(card).join("")
+    : '<div class="empty">Team is scoring its starting point on tasks it has never seen…</div>';
+
+  const complete = shown >= state.decisions.length && state.done;
+  const b = $("badge");
+  if (mode === "replay") { b.className = "badge replay"; b.textContent = complete ? "REPLAY · COMPLETE" : "REPLAY"; }
+  else if (complete) { b.className = "badge complete"; b.textContent = "COMPLETE"; }
+  else if (state.decisions.length || state.run) { b.className = "badge live"; b.textContent = "LIVE"; }
+  else { b.className = "badge waiting"; b.textContent = "WAITING"; }
+
+  const s = state.summary;
+  $("scorePanel").style.display = complete && s ? "" : "none";
+  $("rulesPanel").style.display = complete ? "" : "none";
+  if (complete && s) {
+    $("barB").style.width = pct(s.before_test); $("txtB").textContent = pct(s.before_test);
+    $("barA").style.width = pct(s.after_test); $("txtA").textContent = pct(s.after_test);
+    $("cost").textContent = `${s.calls} model calls · $${s.cost.toFixed(3)} total`;
+    const delta = Math.round((s.after_test - s.before_test) * 100);
+    const kept = state.final_rules.length, del = n("delete");
+    const ban = $("banner");
+    ban.className = "banner show";
+    ban.innerHTML = `<h3>GOAL COMPLETE</h3>
+      <p>On tasks it never saw: <b>${pct(s.before_test)} → ${pct(s.after_test)}</b> (${delta>=0?"+":""}${delta} points).</p>
+      <p>${kept} rule${kept===1?"":"s"} survived. ${n("reject")} proposal${n("reject")===1?"":"s"} rejected, ${del} dead-weight rule${del===1?"":"s"} deleted.</p>
+      <small>${state.offline ? "OFFLINE stand-in run, not a model result." : "Real run on Crusoe Managed Inference."}</small>`;
+    $("rules").innerHTML = state.final_rules.map(r => `<li>${esc(r.text)}</li>`).join("") || "<li>none</li>";
+  } else $("banner").className = "banner";
+}
+
+function header() {
+  $("offline").style.display = state.offline ? "" : "none";
+  $("endpoint").innerHTML = state.offline ? "<b>Endpoint</b>none (offline)"
+    : `<b>Crusoe Managed Inference</b>${esc(state.endpoint.replace(/^https?:\/\//,""))}`;
+  const m = state.models || {}, col = {builder:"#43d18a", verifier:"#ffc247", proposer:"#5aa9ff", analyst:"#5aa9ff"};
+  $("models").innerHTML = ["builder","verifier","proposer"].filter(k=>m[k]).map(k =>
+    `<span class="chip"><span class="dot" style="background:${col[k]}"></span><b>${k}</b>${esc(short(m[k]))}</span>`).join("");
+}
+
+function tick() {
+  if (!state) return;
+  const ds = state.decisions;
+  if (mode === "replay") { $("clock").textContent = fmt((Date.now()-replayStart)/1000); $("ago").textContent = "replaying at demo speed"; return; }
+  if (!ds.length) { $("clock").textContent = "0:00"; $("ago").textContent = "no activity yet"; return; }
+  const first = ds[0].at, last = ds[ds.length-1].at, now = Date.now()/1000;
+  const end = state.done ? last : now;
+  $("clock").textContent = fmt(end - first);
+  $("ago").textContent = state.done ? "finished" : `last update ${fmt(now - last)} ago · you can walk away`;
+}
+
+async function load(first) {
+  const r = await (await fetch("/api/run?id=" + encodeURIComponent(runId))).json();
+  state = r; if (mode === "live") shown = r.decisions.length;
+  header(); render(); tick();
+}
+
+async function pickRuns() {
+  const runs = await (await fetch("/api/runs")).json();
+  $("runPick").innerHTML = runs.map(r => `<option value="${esc(r.run)}">${esc(r.run)}${r.done?"":" (running)"}</option>`).join("")
+    || '<option value="">no runs yet</option>';
+  if (runs.length && (!runId || (mode === "live" && !runs[0].done && /^(real|offline)/.test(runs[0].run) && runs[0].run !== runId))) runId = runs[0].run; // follow a newly started run
+  $("runPick").value = runId;
+}
+
+function startReplay() {
+  mode = "replay"; shown = 0; replayStart = Date.now();
+  $("modeBtn").classList.add("on"); $("modeBtn").textContent = "Back to live";
+  clearInterval(replayT);
+  replayT = setInterval(() => { if (shown < state.decisions.length) { shown++; render(); } else clearInterval(replayT); }, 2200);
+  render();
+}
+function stopReplay() {
+  mode = "live"; clearInterval(replayT);
+  $("modeBtn").classList.remove("on"); $("modeBtn").textContent = "Replay";
+  load();
+}
+$("modeBtn").onclick = () => mode === "live" ? startReplay() : stopReplay();
+$("runPick").onchange = e => { runId = e.target.value; if (mode === "replay") stopReplay(); else load(); };
+document.addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") $("modeBtn").click(); });
+
+(async () => {
+  await pickRuns(); if (runId) await load();
+  setInterval(async () => { await pickRuns(); if (runId && mode === "live") await load(); }, 2000);
+  setInterval(tick, 500);
+})();
+</script>
+</body>
+</html>
