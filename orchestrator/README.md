@@ -43,7 +43,7 @@ pip install -r requirements.txt
 
 2. Set your Crusoe API key (or any OpenAI-compatible key):
 ```bash
-export CRUSOE_API_KEY="your-key-here"
+export CRUSOE_API_KEY="paste-your-key-here"
 # Optional: override base URL or model
 export CRUSOE_BASE_URL="https://api.inference.crusoecloud.com/v1/"
 export MODEL_NAME="nvidia/nemotron-..."  # use the exact model string from Crusoe
